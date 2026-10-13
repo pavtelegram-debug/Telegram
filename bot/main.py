@@ -28,6 +28,7 @@ def database():
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY,
         username TEXT DEFAULT '',
+        phone TEXT DEFAULT '',
         frozen INTEGER DEFAULT 0,
         stars INTEGER DEFAULT 0,
         premium TEXT DEFAULT '',
@@ -74,6 +75,10 @@ def database():
                 "INSERT OR IGNORE INTO numbers(number) VALUES(?)",
                 (number,)
             )
+    # Миграция старой базы без потери данных.
+    columns = {row["name"] for row in con.execute("PRAGMA table_info(users)")}
+    if "phone" not in columns:
+        con.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''")
     con.commit()
     return con
 
@@ -219,7 +224,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         context.user_data["admin_action"] = action
         prompts = {
-            "find": "🔎 Отправь ID или @username пользователя.",
+            "find": "🔎 Поиск пользователя\n\nОтправь Telegram ID, @username или номер FlostGram (+7...).\nПоиск работает по пользователям, которые уже запускали бота, и по тестовым номерам, выданным внутри FlostGram.",
             "punish": "⚖️ Отправь: ID тип причина\n"
                       "Типы: warn, mute, tempban, ban, unban.",
             "labels": "🏷 Отправь: ID метка\nНапример: 123456 VIP",
@@ -316,30 +321,73 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     parts = value.split(maxsplit=2)
-    try:
-        target = int(parts[0].lstrip("@"))
-    except (ValueError, IndexError):
-        await msg.reply_text(
-            "Для этой операции укажи числовой ID. "
-            "Поиск по @username доступен среди известных боту пользователей."
-        )
-        return
-
+    target = None
+    exists = None
     with database() as con:
-        exists = con.execute(
-            "SELECT id, username, frozen, label, stars FROM users WHERE id=?",
-            (target,)
-        ).fetchone()
+        if action == "find":
+            query = value.strip()
+            if query.startswith("@"):
+                username = query[1:].lstrip("@").lower()
+                exists = con.execute(
+                    "SELECT id, username, phone, frozen, label, stars FROM users WHERE lower(username)=? LIMIT 1",
+                    (username,)
+                ).fetchone()
+            elif query.startswith("+") or query.replace(" ", "").isdigit():
+                phone = re.sub(r"[^+0-9]", "", query)
+                exists = con.execute("""
+                    SELECT u.id, u.username, u.phone, u.frozen, u.label, u.stars,
+                           n.number AS owned_number
+                    FROM users u LEFT JOIN numbers n ON n.owner=u.id
+                    WHERE n.number=? OR u.phone=? LIMIT 1
+                """, (phone, phone)).fetchone()
+                if not exists and query.isdigit():
+                    try:
+                        target = int(query)
+                    except ValueError:
+                        target = None
+            else:
+                try:
+                    target = int(query)
+                except ValueError:
+                    target = None
+            if target is not None:
+                exists = con.execute(
+                    "SELECT id, username, phone, frozen, label, stars FROM users WHERE id=?",
+                    (target,)
+                ).fetchone()
+        else:
+            try:
+                target = int(parts[0].lstrip("@"))
+            except (ValueError, IndexError):
+                await msg.reply_text("Для этой операции укажи числовой Telegram ID.")
+                return
+            exists = con.execute(
+                "SELECT id, username, phone, frozen, label, stars FROM users WHERE id=?",
+                (target,)
+            ).fetchone()
+
         if action == "find":
             if not exists:
                 await msg.reply_text("Пользователь не найден в базе.")
                 return
+            with database() as con:
+                owned = con.execute(
+                    "SELECT number FROM numbers WHERE owner=? ORDER BY number",
+                    (exists["id"],)
+                ).fetchall()
+            numbers_text = ", ".join(x["number"] for x in owned) or "нет"
             await msg.reply_text(
-                f"🔎 Пользователь\nID: {exists['id']}\n"
-                f"Username: @{exists['username'] or 'не указан'}\n"
-                f"Блокировка: {bool(exists['frozen'])}\n"
-                f"Метка: {exists['label'] or 'нет'}\n"
-                f"Демо Stars: {exists['stars']}"
+                f"🔎 ПРОФИЛЬ FLOSTGRAM\n\n"
+                f"🆔 ID: {exists['id']}\n"
+                f"👤 Username: @{exists['username'] or 'не указан'}\n"
+                f"📱 Телефон: {exists['phone'] or 'не предоставлен'}\n"
+                f"📲 Мои тестовые номера: {numbers_text}\n"
+                f"🔒 Блокировка: {'да' if exists['frozen'] else 'нет'}\n"
+                f"🏷 Метка: {exists['label'] or 'нет'}\n"
+                f"⭐ Демо Stars: {exists['stars']}",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🔐 Админ-панель", callback_data="admin")
+                ]])
             )
         elif not exists:
             await msg.reply_text("Пользователь не найден. Он должен запустить бота.")
