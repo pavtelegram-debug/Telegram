@@ -18,9 +18,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Check bot configuration
+      - name: Start FlostGram Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
-        run: |
-          python -c "import os; assert os.getenv('BOT_TOKEN'), 'Missing BOT_TOKEN'; assert os.getenv('ADMIN_IDS'), 'Missing ADMIN_IDS'; print('Secrets configured')"
+        run: python -u bot/main.py
