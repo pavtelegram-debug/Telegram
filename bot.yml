@@ -1,0 +1,26 @@
+name: Run FlostGram Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check bot configuration
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+        run: |
+          python -c "import os; assert os.getenv('BOT_TOKEN'), 'Missing BOT_TOKEN'; assert os.getenv('ADMIN_IDS'), 'Missing ADMIN_IDS'; print('Secrets configured')"
