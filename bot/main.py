@@ -225,11 +225,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["admin_action"] = action
         prompts = {
             "find": "🔎 Поиск пользователя\n\nОтправь Telegram ID, @username или номер FlostGram (+7...).\nПоиск работает по пользователям, которые уже запускали бота, и по тестовым номерам, выданным внутри FlostGram.",
-            "punish": "⚖️ Отправь: ID тип причина\n"
+            "punish": "⚖️ Отправь: @username тип причина\n"
                       "Типы: warn, mute, tempban, ban, unban.",
-            "labels": "🏷 Отправь: ID метка\nНапример: 123456 VIP",
-            "freeze": "🔒 Отправь: ID block или unblock",
-            "credits": "⭐ Отправь: ID количество_демо_Stars"
+            "labels": "🏷 Отправь: @username метка\nНапример: @mvdkit VIP",
+            "freeze": "🔒 Отправь: @username block или unblock",
+            "credits": "⭐ Отправь: @username количество_демо_Stars"
         }
         await show(update, prompts[action])
     elif action == "requests":
@@ -356,15 +356,40 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     (target,)
                 ).fetchone()
         else:
-            try:
-                target = int(parts[0].lstrip("@"))
-            except (ValueError, IndexError):
-                await msg.reply_text("Для этой операции укажи числовой Telegram ID.")
+            if not parts:
+                await msg.reply_text("Укажи @username, Telegram ID или тестовый номер FlostGram.")
                 return
-            exists = con.execute(
-                "SELECT id, username, phone, frozen, label, stars FROM users WHERE id=?",
-                (target,)
-            ).fetchone()
+            key = parts[0].strip()
+            if key.startswith("@"):
+                exists = con.execute(
+                    "SELECT id, username, phone, frozen, label, stars FROM users WHERE lower(username)=? LIMIT 1",
+                    (key[1:].lower(),)
+                ).fetchone()
+            elif key.startswith("+"):
+                normalized = re.sub(r"[^+0-9]", "", key)
+                exists = con.execute("""
+                    SELECT u.id, u.username, u.phone, u.frozen, u.label, u.stars
+                    FROM users u LEFT JOIN numbers n ON n.owner=u.id
+                    WHERE n.number=? OR u.phone=? LIMIT 1
+                """, (normalized, normalized)).fetchone()
+            else:
+                try:
+                    target = int(key)
+                except ValueError:
+                    target = None
+                if target is not None:
+                    exists = con.execute(
+                        "SELECT id, username, phone, frozen, label, stars FROM users WHERE id=?",
+                        (target,)
+                    ).fetchone()
+            if exists:
+                target = exists["id"]
+            else:
+                await msg.reply_text(
+                    "Пользователь не найден среди тех, кто запускал бота. "
+                    "Проверь @username или тестовый номер FlostGram."
+                )
+                return
 
         if action == "find":
             if not exists:
