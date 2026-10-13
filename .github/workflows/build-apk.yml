@@ -1,7 +1,14 @@
-name: Build Telegram APK
+name: Build FlostGram APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - "TMessagesProj/src/main/res/**"
+      - ".github/workflows/build-apk.yml"
+      - "gradle.properties"
+      - "TMessagesProj/config/release/AndroidManifest_standalone.xml"
 
 permissions:
   contents: read
