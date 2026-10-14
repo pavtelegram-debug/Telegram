@@ -108,7 +108,7 @@ def is_admin(uid):
 def main_menu(uid):
     rows = [
         [("📱 Получить один бесплатный номер", "number")],
-        [("🔁 Повторно показать код", "repeat_code")],
+        [("🔐 Как получить код входа", "repeat_code")],
         [("🖼 NFT-юзернейм", "nft_user"),
          ("💎 NFT-номер", "nft_number")],
         [("📋 Мои данные", "mydata"),
