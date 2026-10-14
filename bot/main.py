@@ -154,11 +154,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ).fetchone()
 
     if row and row["frozen"] and not is_admin(user.id):
-        await show(update, "🔒 Доступ к FlostGram ограничен.")
+        await show(update, "🔒 Доступ к TelefostGram ограничен.")
         return
 
     if action == "home":
-        await show(update, "🌑 FLOSTGRAM\n\nГлавное меню:",
+        await show(update, "🌑 TELEFOSTGRAM\n\nГлавное меню:",
                    main_menu(user.id))
     elif action == "help":
         await show(update,
@@ -190,7 +190,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📱 ТВОЙ ТЕСТОВЫЙ НОМЕР\n\n"
             f"`{number}`\n\n"
             f"🧪 Тестовый код: `{code}`\n\n"
-            "Номер и код действуют внутри FlostGram. "
+            "Номер и код действуют внутри TelefostGram. "
             "Это не реальный телефонный номер и не SMS от Telegram.",
             main_menu(user.id)
         )
@@ -216,7 +216,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not is_admin(user.id):
             await show(update, "⛔ Нет доступа.")
             return
-        await show(update, "🔐 FLOSTGRAM ADMIN\n\nВыбери инструмент:",
+        await show(update, "🔐 TELEFOSTGRAM ADMIN\n\nВыбери инструмент:",
                    admin_menu())
     elif action in ("find", "punish", "labels", "freeze", "credits"):
         if not is_admin(user.id):
@@ -224,7 +224,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         context.user_data["admin_action"] = action
         prompts = {
-            "find": "🔎 Поиск пользователя\n\nОтправь Telegram ID, @username или номер FlostGram (+7...).\nПоиск работает по пользователям, которые уже запускали бота, и по тестовым номерам, выданным внутри FlostGram.",
+            "find": "🔎 Поиск пользователя\n\nОтправь Telegram ID, @username или номер TelefostGram (+7...).\nПоиск работает по пользователям, которые уже запускали бота, и по тестовым номерам, выданным внутри TelefostGram.",
             "punish": "⚖️ Отправь: @username тип причина\n"
                       "Типы: warn, mute, tempban, ban, unban.",
             "labels": "🏷 Отправь: @username метка\nНапример: @mvdkit VIP",
@@ -357,7 +357,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ).fetchone()
         else:
             if not parts:
-                await msg.reply_text("Укажи @username, Telegram ID или тестовый номер FlostGram.")
+                await msg.reply_text("Укажи @username, Telegram ID или тестовый номер TelefostGram.")
                 return
             key = parts[0].strip()
             if key.startswith("@"):
@@ -387,7 +387,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await msg.reply_text(
                     "Пользователь не найден среди тех, кто запускал бота. "
-                    "Проверь @username или тестовый номер FlostGram."
+                    "Проверь @username или тестовый номер TelefostGram."
                 )
                 return
 
@@ -402,7 +402,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ).fetchall()
             numbers_text = ", ".join(x["number"] for x in owned) or "нет"
             await msg.reply_text(
-                f"🔎 ПРОФИЛЬ FLOSTGRAM\n\n"
+                f"🔎 ПРОФИЛЬ TELEFOSTGRAM\n\n"
                 f"🆔 ID: {exists['id']}\n"
                 f"👤 Username: @{exists['username'] or 'не указан'}\n"
                 f"📱 Телефон: {exists['phone'] or 'не предоставлен'}\n"
