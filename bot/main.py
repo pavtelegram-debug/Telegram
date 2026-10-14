@@ -18,12 +18,15 @@ ADMIN_IDS = {
     for x in os.getenv("ADMIN_IDS", "").split(",")
     if x.strip().isdigit()
 }
-DB = "bot/data.sqlite3"
+DB = os.getenv("TELEFOST_DB_PATH", "bot/data.sqlite3")
 
 def database():
     os.makedirs("bot", exist_ok=True)
-    con = sqlite3.connect(DB)
+    os.makedirs(os.path.dirname(DB) or ".", exist_ok=True)
+    con = sqlite3.connect(DB, timeout=30)
     con.row_factory = sqlite3.Row
+    con.execute("PRAGMA busy_timeout=30000")
+    con.execute("PRAGMA journal_mode=WAL")
     con.executescript("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY,
@@ -68,8 +71,9 @@ def database():
     # Создаём демонстрационный пул номеров, если он пуст.
     if con.execute("SELECT COUNT(*) FROM numbers").fetchone()[0] == 0:
         for i in range(100):
-            number = "+7" + "".join(
-                str(secrets.randbelow(10)) for _ in range(10)
+            # Telefost demo numbers use the +79XXXXXXXXX shape.
+            number = "+79" + "".join(
+                str(secrets.randbelow(10)) for _ in range(9)
             )
             con.execute(
                 "INSERT OR IGNORE INTO numbers(number) VALUES(?)",
@@ -191,23 +195,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                            main_menu(user.id))
                 return
             number = item["number"]
-            # Код существует только внутри тестового проекта.
-            code = "".join(str(secrets.randbelow(10)) for _ in range(6))
-            con.execute("""
-                UPDATE numbers SET owner=?, code=?
+            cur = con.execute("""
+                UPDATE numbers SET owner=?, code=''
                 WHERE number=? AND owner IS NULL
-            """, (user.id, code, number))
-            if con.total_changes == 0:
-                await show(update, "Не удалось закрепить номер. Попробуй ещё раз.",
+            """, (user.id, number))
+            if cur.rowcount != 1:
+                await show(update, "Не удалось закрепить номер. Нажми ещё раз.",
                            main_menu(user.id))
                 return
         await show(
             update,
-            f"📱 ТВОЙ ТЕСТОВЫЙ НОМЕР\n\n"
-            f"`{number}`\n\n"
-            f"🧪 Тестовый код: `{code}`\n\n"
-            "Номер и код действуют внутри TelefostGram. "
-            "Это не реальный телефонный номер и не SMS от Telegram.",
+            f"📱 ТВОЙ НОМЕР TELEFOST\n\n`{number}`\n\n"
+            "Чтобы войти в собственный сервис Telefost, введи этот номер в приложении. "
+            "Код подтверждения придёт в этот чат от бота. "
+            "Это виртуальный номер Telefost, а не действующий номер мобильной сети "
+            "и не код авторизации Telegram.",
             main_menu(user.id)
         )
     elif action == "repeat_code":
@@ -220,9 +222,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         await show(
             update,
-            f"🔁 ТВОЙ ТЕСТОВЫЙ КОД\\n\\nНомер: {owned['number']}\\n"
-            f"Код: {owned['code']}\\n\\n"
-            "Это код внутри TelefostGram, не код авторизации Telegram.",
+            f"🔁 ТВОЙ НОМЕР TELEFOST\\n\\n{owned['number']}\\n\\n"
+            "Запроси код входа в приложении Telefost. Бот пришлёт код сюда. "
+            "Это подтверждение только для Telefost, не для Telegram.",
             main_menu(user.id)
         )
     elif action == "mydata":
