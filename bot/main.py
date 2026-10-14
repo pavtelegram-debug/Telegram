@@ -105,7 +105,8 @@ def main_menu(uid):
 def admin_menu():
     rows = [
         [("🔎 Найти пользователя", "find"),
-         ("⚖️ Наказания", "punish")],
+         ("🗑 Удалить запись", "delete")],
+        [("⚖️ Наказания", "punish")],
         [("🏷 Метки", "labels"),
          ("🔒 Блокировка", "freeze")],
         [("⭐ Stars / Premium", "credits"),
@@ -248,18 +249,19 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         await show(update, "🔐 TELEFOSTGRAM ADMIN\n\nВыбери инструмент:",
                    admin_menu())
-    elif action in ("find", "punish", "labels", "freeze", "credits"):
+    elif action in ("find", "delete", "punish", "labels", "freeze", "credits"):
         if not is_admin(user.id):
             await show(update, "⛔ Нет доступа.")
             return
         context.user_data["admin_action"] = action
         prompts = {
-            "find": "🔎 Поиск пользователя\n\nОтправь Telegram ID, @username или номер TelefostGram (+7...).\nПоиск работает по пользователям, которые уже запускали бота, и по тестовым номерам, выданным внутри TelefostGram.",
+            "find": "🔎 Поиск пользователя\\n\\nОтправь Telegram ID, @username или тестовый номер. Ищутся только пользователи базы TelefostGram.",
+            "delete": "🗑 Удаление записи только из базы этого бота\\nОтправь: @username причина или ID причина. Аккаунт Telegram не удаляется.",
             "punish": "⚖️ Отправь: @username тип причина\n"
                       "Типы: warn, mute, tempban, ban, unban.",
             "labels": "🏷 Отправь: @username метка\nНапример: @mvdkit VIP",
             "freeze": "🔒 Отправь: @username block или unblock",
-            "credits": "⭐ Отправь: @username количество_демо_Stars"
+            "credits": "⭐ Отправь: @username количество_демо_Stars [premium|none]. Пример: @username 1000 premium. Это не настоящие Telegram Stars/Premium."
         }
         await show(update, prompts[action])
     elif action == "requests":
