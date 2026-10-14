@@ -486,11 +486,16 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif not exists:
             await msg.reply_text("Пользователь не найден. Он должен запустить бота.")
         elif action == "labels" and len(parts) >= 2:
+            label = parts[1].lower()
+            allowed_labels = {"scam", "fake", "hold", "major", "vip", "none"}
+            if label not in allowed_labels:
+                await msg.reply_text("Допустимые метки: scam, fake, hold, major, vip, none.")
+                return
             con.execute("UPDATE users SET label=? WHERE id=?",
-                        (parts[1], target))
+                        ("" if label == "none" else label, target))
             con.execute("INSERT INTO logs(admin_id, action, target) VALUES(?,?,?)",
-                        (user.id, "label", str(target)))
-            await msg.reply_text("✅ Метка обновлена.")
+                        (user.id, "label:" + label, str(target)))
+            await msg.reply_text("Внутренняя метка TelefostGram обновлена.")
         elif action == "freeze" and len(parts) >= 2:
             state = parts[1].lower()
             if state not in ("block", "unblock"):
@@ -509,11 +514,15 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except ValueError:
                 await msg.reply_text("Укажи неотрицательное число.")
                 return
-            con.execute("UPDATE users SET stars=? WHERE id=?",
-                        (amount, target))
+            premium = parts[2].lower() if len(parts) >= 3 else "none"
+            if premium not in ("premium", "none"):
+                await msg.reply_text("Третий параметр: premium или none.")
+                return
+            con.execute("UPDATE users SET stars=?, premium=? WHERE id=?",
+                        (amount, "forever" if premium == "premium" else "", target))
             con.execute("INSERT INTO logs(admin_id, action, target) VALUES(?,?,?)",
-                        (user.id, "demo_stars", f"{target}:{amount}"))
-            await msg.reply_text("✅ Демо-баланс сохранён. Это не настоящие Stars.")
+                        (user.id, "demo_stars_premium", f"{target}:{amount}:{premium}"))
+            await msg.reply_text("Внутренние демо-значения сохранены. Это не реальные Telegram Stars/Premium.")
         elif action == "punish" and len(parts) >= 3:
             allowed = ("warn", "mute", "tempban", "ban", "unban")
             if parts[1].lower() not in allowed:
