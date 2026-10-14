@@ -148,6 +148,20 @@ def init_db():
         ):
             if name not in cols:
                 con.execute(f"ALTER TABLE users ADD COLUMN {name} {definition}")
+        # Keep already-assigned records intact; replace only unassigned legacy placeholders.
+        free_rows = con.execute("SELECT number FROM numbers WHERE owner IS NULL").fetchall()
+        for row in free_rows:
+            if not re.fullmatch(r"\\+79\\d{9}", row["number"]):
+                replacement = None
+                for _ in range(20):
+                    candidate = "+79" + "".join(str(secrets.randbelow(10)) for _ in range(9))
+                    if not con.execute("SELECT 1 FROM numbers WHERE number=?", (candidate,)).fetchone():
+                        replacement = candidate
+                        break
+                if replacement:
+                    con.execute("DELETE FROM numbers WHERE number=? AND owner IS NULL", (row["number"],))
+                    con.execute("INSERT OR IGNORE INTO numbers(number, owner, code) VALUES(?, NULL, '')",
+                                (replacement,))
 
 
 def normalize_phone(phone: str) -> str:
