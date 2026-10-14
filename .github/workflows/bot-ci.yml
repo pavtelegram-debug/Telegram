@@ -1,0 +1,44 @@
+name: Validate TelefostGram Bot
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "bot/**"
+      - "requirements.txt"
+      - ".github/workflows/bot.yml"
+      - ".github/workflows/bot-ci.yml"
+  pull_request:
+    paths:
+      - "bot/**"
+      - "requirements.txt"
+      - ".github/workflows/bot.yml"
+      - ".github/workflows/bot-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bot dependencies
+        run: pip install -r requirements.txt
+      - name: Compile bot source
+        run: python -m py_compile bot/main.py
+      - name: Check required handlers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('bot/main.py').read_text(encoding='utf-8')
+          required = ['CommandHandler("start"', 'CallbackQueryHandler(button)', 'app.run_polling()', 'BOT_TOKEN', 'ADMIN_IDS']
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit('Missing required bot parts: ' + ', '.join(missing))
+          print('Bot source checks passed')
+          PY
