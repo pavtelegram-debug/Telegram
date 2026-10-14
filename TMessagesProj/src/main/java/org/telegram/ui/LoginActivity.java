@@ -3237,7 +3237,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                             needShowAlert(getString(R.string.RestorePasswordNoEmailTitle), getString("FloodWait", R.string.FloodWait));
                         } else if (error.code != -1000) {
                             AlertsCreator.processError(currentAccount, error, LoginActivity.this, req, phoneInputData.phoneNumber);
+                        } else {
+                            needShowAlert(getString(R.string.RestorePasswordNoEmailTitle),
+                                    "Не удалось подключиться к серверам Telegram. Проверь интернет или VPN и попробуй ещё раз.");
                         }
+                    } else {
+                        needShowAlert(getString(R.string.RestorePasswordNoEmailTitle),
+                                "Сервер не вернул ответ на запрос входа. Проверь номер и подключение, затем попробуй ещё раз.");
                     }
                 }
                 if (!isRequestingFirebaseSms) {
