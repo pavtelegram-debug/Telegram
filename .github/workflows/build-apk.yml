@@ -6,6 +6,7 @@ on:
     branches: [ master ]
     paths:
       - "TMessagesProj/src/main/res/**"
+      - "TMessagesProj/src/main/java/org/telegram/ui/LoginActivity.java"
       - ".github/workflows/build-apk.yml"
       - "gradle.properties"
       - "TMessagesProj/config/release/AndroidManifest_standalone.xml"
