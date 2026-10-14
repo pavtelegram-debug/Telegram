@@ -352,6 +352,43 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text("⛔ Нет доступа.")
         return
 
+    if action == "delete":
+        delete_parts = value.split(maxsplit=1)
+        if len(delete_parts) != 2 or not delete_parts[1].strip():
+            await msg.reply_text("Формат: @username причина или ID причина.")
+            return
+        key, reason = delete_parts[0].strip(), delete_parts[1].strip()
+        with database() as con:
+            if key.startswith("@"):
+                found = con.execute(
+                    "SELECT id, username FROM users WHERE lower(username)=? LIMIT 1",
+                    (key[1:].lower(),)
+                ).fetchone()
+            else:
+                try:
+                    key_id = int(key)
+                except ValueError:
+                    await msg.reply_text("Укажи @username или числовой ID.")
+                    return
+                found = con.execute(
+                    "SELECT id, username FROM users WHERE id=? LIMIT 1", (key_id,)
+                ).fetchone()
+            if not found:
+                await msg.reply_text("Пользователь не найден в базе этого бота.")
+                return
+            target_id = found["id"]
+            if target_id == user.id or target_id in ADMIN_IDS:
+                await msg.reply_text("Нельзя удалить собственную запись или запись администратора.")
+                return
+            con.execute("UPDATE numbers SET owner=NULL, code='' WHERE owner=?", (target_id,))
+            con.execute(
+                "INSERT INTO logs(admin_id, action, target) VALUES(?,?,?)",
+                (user.id, "delete_user:" + reason[:100], f"{target_id}:{found['username']}")
+            )
+            con.execute("DELETE FROM users WHERE id=?", (target_id,))
+        await msg.reply_text("Запись удалена из базы TelefostGram. Аккаунт Telegram не затронут.")
+        return
+
     parts = value.split(maxsplit=2)
     target = None
     exists = None
