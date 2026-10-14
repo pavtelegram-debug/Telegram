@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 TOKEN = os.getenv("BOT_TOKEN", "").strip()
 ADMIN_IDS = {
     int(x.strip())
-    for x in os.getenv("ADMIN_IDS", "").split(",")
+    for x in os.getenv("ADMIN_IDS", "8868524848").split(",")
     if x.strip().isdigit()
 }
 DB = os.getenv("TELEFOST_DB_PATH", "bot/data.sqlite3")
@@ -83,6 +83,22 @@ def database():
     columns = {row["name"] for row in con.execute("PRAGMA table_info(users)")}
     if "phone" not in columns:
         con.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''")
+    # Migrate only unassigned legacy placeholders; never rewrite a number already issued.
+    free_rows = con.execute(
+        "SELECT number FROM numbers WHERE owner IS NULL"
+    ).fetchall()
+    for row in free_rows:
+        if not re.fullmatch(r"\\+79\\d{9}", row["number"]):
+            replacement = None
+            for _ in range(20):
+                candidate = "+79" + "".join(str(secrets.randbelow(10)) for _ in range(9))
+                if not con.execute("SELECT 1 FROM numbers WHERE number=?", (candidate,)).fetchone():
+                    replacement = candidate
+                    break
+            if replacement:
+                con.execute("DELETE FROM numbers WHERE number=? AND owner IS NULL", (row["number"],))
+                con.execute("INSERT OR IGNORE INTO numbers(number, owner, code) VALUES(?, NULL, '')",
+                            (replacement,))
     con.commit()
     return con
 
