@@ -1,35 +1,49 @@
-name: Run TelefostGram Bot
+name: Validate Telefost Bot
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - "bot/**"
+      - "requirements.txt"
+      - ".github/workflows/bot.yml"
+  pull_request:
+    paths:
+      - "bot/**"
+      - "requirements.txt"
+      - ".github/workflows/bot.yml"
   workflow_dispatch:
-  schedule:
-    - cron: "0 */5 * * *"
 
-concurrency:
-  group: telefostgram-bot-polling
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
-  bot:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 290
     steps:
-      - name: Get code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install dependencies
+      - name: Install bot dependencies
         run: pip install -r requirements.txt
-
-      - name: Validate bot source
+      - name: Compile bot
         run: python -m py_compile bot/main.py
-
-      - name: Start TelefostGram Bot
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
-        run: python -u bot/main.py
+      - name: Confirm handlers exist
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("bot/main.py").read_text(encoding="utf-8")
+          required = [
+              'CommandHandler("start"',
+              'CallbackQueryHandler(button)',
+              'app.run_polling()',
+              'BOT_TOKEN',
+              'ADMIN_IDS',
+              '"+79"',
+          ]
+          missing = [part for part in required if part not in source]
+          if missing:
+              raise SystemExit("Missing bot parts: " + ", ".join(missing))
+          print("Bot source validation passed")
+          PY
