@@ -13,6 +13,10 @@ on:
       - "settings.gradle"
       - "gradlew"
       - ".github/workflows/build-apk.yml"
+      - "backend/**"
+      - "bot/**"
+      - "requirements.txt"
+      - "render.yaml"
 
 permissions:
   contents: read
