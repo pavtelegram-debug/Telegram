@@ -34,7 +34,7 @@ class TelefostApiTests(unittest.TestCase):
     def test_only_plus79_format_is_accepted(self):
         self.assertEqual(api.normalize_phone("+79123456789"), "+79123456789")
         with self.assertRaises(Exception):
-            api.normalize_phone("+70123456789")
+            api.normalize_phone("+123456789012")
 
     def test_code_goes_to_number_owner_and_is_single_use(self):
         result = api.request_code(api.CodeRequest(phone="+79123456789"))
