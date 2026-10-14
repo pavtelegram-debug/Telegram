@@ -87,7 +87,8 @@ def is_admin(uid):
 
 def main_menu(uid):
     rows = [
-        [("📱 Получить номер", "number")],
+        [("📱 Получить один бесплатный номер", "number")],
+        [("🔁 Повторно показать код", "repeat_code")],
         [("🖼 NFT-юзернейм", "nft_user"),
          ("💎 NFT-номер", "nft_number")],
         [("📋 Мои данные", "mydata"),
@@ -165,6 +166,20 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                    "❓ ПОМОЩЬ\n\nВыбирай раздел кнопками меню.",
                    main_menu(user.id))
     elif action == "number":
+        # One test number per user; clicking again returns the same assignment.
+        with database() as con:
+            owned = con.execute(
+                "SELECT number, code FROM numbers WHERE owner=? LIMIT 1", (user.id,)
+            ).fetchone()
+        if owned:
+            await show(
+                update,
+                f"📱 ТВОЙ ТЕСТОВЫЙ НОМЕР\\n\\n{owned['number']}\\n\\n"
+                f"🧪 Тестовый код: {owned['code']}\\n\\n"
+                "Это данные только для TelefostGram, не реальный номер и не SMS-код Telegram.",
+                main_menu(user.id)
+            )
+            return
         with database() as con:
             item = con.execute("""
                 SELECT number FROM numbers
@@ -192,6 +207,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🧪 Тестовый код: `{code}`\n\n"
             "Номер и код действуют внутри TelefostGram. "
             "Это не реальный телефонный номер и не SMS от Telegram.",
+            main_menu(user.id)
+        )
+    elif action == "repeat_code":
+        with database() as con:
+            owned = con.execute(
+                "SELECT number, code FROM numbers WHERE owner=? LIMIT 1", (user.id,)
+            ).fetchone()
+        if not owned:
+            await show(update, "Сначала получи тестовый номер.", main_menu(user.id))
+            return
+        await show(
+            update,
+            f"🔁 ТВОЙ ТЕСТОВЫЙ КОД\\n\\nНомер: {owned['number']}\\n"
+            f"Код: {owned['code']}\\n\\n"
+            "Это код внутри TelefostGram, не код авторизации Telegram.",
             main_menu(user.id)
         )
     elif action == "mydata":
