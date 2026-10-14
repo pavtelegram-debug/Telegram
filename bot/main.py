@@ -131,7 +131,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     register_user(user)
     await update.message.reply_text(
-        "🌑 FLOSTGRAM\n\n"
+        "🔷 TELEFOSTGRAM\n\n"
         "Твоё пространство виртуальных сервисов.\n"
         "Выбери нужный раздел:",
         reply_markup=main_menu(user.id)
