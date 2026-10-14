@@ -166,8 +166,9 @@ def init_db():
 
 def normalize_phone(phone: str) -> str:
     value = re.sub(r"[\s()\-]", "", phone)
-    if not re.fullmatch(r"\+79\d{9}", value):
-        raise HTTPException(status_code=422, detail="Номер Telefost должен иметь формат +79XXXXXXXXX.")
+    # New numbers are +79XXXXXXXXX. Accept legacy +7 numbers already assigned by the old bot.
+    if not re.fullmatch(r"\+7\d{10}", value):
+        raise HTTPException(status_code=422, detail="Номер Telefost должен иметь формат +7 и 10 цифр.")
     return value
 
 
