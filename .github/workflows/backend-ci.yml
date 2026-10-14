@@ -1,0 +1,47 @@
+name: Validate FlostGram API
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches: [ master ]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile Python
+        run: python -m py_compile main.py
+      - name: Start API and check health
+        env:
+          FLOSTGRAM_DB: /tmp/flostgram-ci.sqlite3
+          FLOSTGRAM_ADMIN_TOKEN: ci-test-token
+        run: |
+          uvicorn main:app --host 127.0.0.1 --port 8000 &
+          API_PID=$!
+          trap 'kill "$API_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail http://127.0.0.1:8000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1

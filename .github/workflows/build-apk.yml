@@ -1,9 +1,11 @@
-name: Build TelefostGram APK
+name: Build FlostGram APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - flostgram/all-in-one-foundation
     paths:
       - "TMessagesProj/**"
       - "TMessagesProj_AppStandalone/**"
@@ -20,24 +22,20 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
-
+          java-version: "17"
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'platform-tools'
-
+          packages: "platform-tools"
       - name: Install SDK and NDK
         run: |
           sdkmanager --install \
@@ -45,17 +43,14 @@ jobs:
             "build-tools;36.0.0" \
             "ndk;27.2.12479018" \
             "cmake;3.22.1"
-
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon \
-            :TMessagesProj_AppStandalone:assembleAfatStandalone
-
+          ./gradlew --no-daemon :TMessagesProj_AppStandalone:assembleAfatStandalone
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TelefostGram-APK
+          name: FlostGram-APK
           path: TMessagesProj_AppStandalone/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 90
