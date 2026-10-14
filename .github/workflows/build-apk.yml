@@ -1,4 +1,4 @@
-name: Build FlostGram APK
+name: Build TelefostGram APK
 
 on:
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: FlostGram-APK
+          name: TelefostGram-APK
           path: TMessagesProj_AppStandalone/build/outputs/apk/**/*.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
