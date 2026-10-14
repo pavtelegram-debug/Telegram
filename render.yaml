@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: telefost-api
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: telefost-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: TELEFOST_DB_PATH
+        value: /var/data/telefost.sqlite3
+      - key: TELEFOST_ADMIN_TOKEN
+        generateValue: true
+      - key: TELEFOST_START_BOT
+        value: "1"
+      - key: ADMIN_IDS
+        value: "8868524848"
+      - key: BOT_TOKEN
+        sync: false
