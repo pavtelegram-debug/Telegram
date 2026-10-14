@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">TelefostGram</string>
-    <string name="AppNameBeta">TelefostGram Beta</string>
+    <string name="AppName">Telefost</string>
+    <string name="AppNameBeta">Telefost Beta</string>
     <string name="LanguageName">Русский</string>
     <string name="English">Английский</string>
     <string name="LanguageNameInEnglish">Russian</string>
