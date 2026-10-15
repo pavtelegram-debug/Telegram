@@ -562,13 +562,20 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not TOKEN:
-        raise RuntimeError("Не задан BOT_TOKEN в GitHub Secrets")
-    database().close()
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-    app.run_polling()
+        logger.error("Bot startup aborted: BOT_TOKEN is missing.")
+        raise RuntimeError("Не задан BOT_TOKEN в переменных окружения Render")
+    logger.info("Telefost bot process starting; admin IDs configured: %d", len(ADMIN_IDS))
+    try:
+        database().close()
+        app = Application.builder().token(TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CallbackQueryHandler(button))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+        logger.info("Telegram bot handlers registered; starting polling.")
+        app.run_polling()
+    except Exception:
+        logger.exception("Telefost bot crashed during startup or polling.")
+        raise
 
 if __name__ == "__main__":
     main()
