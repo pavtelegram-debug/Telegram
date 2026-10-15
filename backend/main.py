@@ -1,11 +1,13 @@
 import hashlib
 import hmac
+import logging
 import os
 import re
 import secrets
 import sqlite3
 import subprocess
 import sys
+import time
 import urllib.parse
 import urllib.request
 from contextlib import contextmanager
@@ -20,6 +22,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 ADMIN_TOKEN = os.getenv("TELEFOST_ADMIN_TOKEN", "").strip()
 CODE_TTL_SECONDS = 300
 CODE_COOLDOWN_SECONDS = 30
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+logger = logging.getLogger("telefost")
 app = FastAPI(title="Telefost API", version="1.0.0")
 _bot_process = None
 
@@ -254,16 +258,38 @@ class RequestCreate(BaseModel):
 @app.on_event("startup")
 def startup():
     global _bot_process
+    logger.info("Starting Telefost API; database path configured.")
     init_db()
-    if BOT_TOKEN and os.getenv("TELEFOST_START_BOT", "1") == "1":
-        env = os.environ.copy()
-        env["TELEFOST_DB_PATH"] = DB_PATH
+
+    start_bot = os.getenv("TELEFOST_START_BOT", "1").strip() == "1"
+    if not start_bot:
+        logger.warning("Telegram bot start skipped: TELEFOST_START_BOT is not 1.")
+        return
+    if not BOT_TOKEN:
+        logger.error("Telegram bot not started: BOT_TOKEN is missing.")
+        return
+
+    env = os.environ.copy()
+    env["TELEFOST_DB_PATH"] = DB_PATH
+    try:
+        logger.info("Launching Telegram bot subprocess: python -m bot.main")
         _bot_process = subprocess.Popen(
-            [sys.executable, "-m", "bot.main"],
+            [sys.executable, "-u", "-m", "bot.main"],
             env=env,
             stdout=sys.stdout,
             stderr=sys.stderr,
+            cwd=os.getcwd(),
         )
+        # Catch immediate failures (missing dependency, invalid token, import errors).
+        time.sleep(1)
+        exit_code = _bot_process.poll()
+        if exit_code is not None:
+            logger.error("Telegram bot process exited during startup with code %s.", exit_code)
+            _bot_process = None
+        else:
+            logger.info("Telegram bot subprocess is running (pid=%s).", _bot_process.pid)
+    except Exception:
+        logger.exception("Failed to launch Telegram bot subprocess.")
 
 
 @app.on_event("shutdown")
