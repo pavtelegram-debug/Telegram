@@ -131,6 +131,33 @@ public final class TelefostApi {
         execute("POST", "/v1/requests", body, true, callback);
     }
 
+    /** List recent Telefost conversations for the signed-in account. */
+    public void getChats(Callback callback) {
+        execute("GET", "/v1/chats", null, true, callback);
+    }
+
+    /** Fetch message history with an exact @username or Telefost number. */
+    public void getChat(String usernameOrPhone, Callback callback) {
+        try {
+            String peer = java.net.URLEncoder.encode(usernameOrPhone, "UTF-8").replace("+", "%20");
+            execute("GET", "/v1/chats/" + peer, null, true, callback);
+        } catch (Exception e) {
+            deliverError(callback, "Некорректный адрес чата.");
+        }
+    }
+
+    /** Send a plain-text message through Telefost's own backend. */
+    public void sendMessage(String usernameOrPhone, String text, Callback callback) {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("text", text == null ? "" : text);
+            String peer = java.net.URLEncoder.encode(usernameOrPhone, "UTF-8").replace("+", "%20");
+            execute("POST", "/v1/chats/" + peer + "/messages", body, true, callback);
+        } catch (Exception e) {
+            deliverError(callback, "Не удалось подготовить сообщение.");
+        }
+    }
+
     private void execute(String method, String path, JSONObject body, boolean authenticated, Callback callback) {
         EXECUTOR.execute(() -> {
             HttpURLConnection connection = null;
