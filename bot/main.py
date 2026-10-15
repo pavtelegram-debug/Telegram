@@ -88,7 +88,7 @@ def database():
         "SELECT number FROM numbers WHERE owner IS NULL"
     ).fetchall()
     for row in free_rows:
-        if not re.fullmatch(r"\\+79\\d{9}", row["number"]):
+        if not re.fullmatch(r"\+79\d{9}", row["number"]):
             replacement = None
             for _ in range(20):
                 candidate = "+79" + "".join(str(secrets.randbelow(10)) for _ in range(9))
