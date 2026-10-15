@@ -264,9 +264,12 @@ def search_users(q: str, user=Depends(current_user)):
     query = q.strip()
     ensure_schema()
     with db_connection() as conn:
-        if query.startswith("@"):
+        if query.startswith("@") or not re.fullmatch(r"\+?\d[\d\s()\-]*", query):
+            username = query.lstrip("@").strip().lower()
+            if not re.fullmatch(r"[a-z][a-z0-9_]{4,31}", username):
+                raise HTTPException(status_code=422, detail="Введи @username или номер Telefost +79XXXXXXXXX.")
             rows = conn.execute("SELECT id, phone, username, display_name FROM user_profiles WHERE lower(username)=%s LIMIT 20",
-                                (query[1:].lower(),)).fetchall()
+                                (username,)).fetchall()
         else:
             phone = normalize_phone(query)
             rows = conn.execute("SELECT id, phone, username, display_name FROM user_profiles WHERE phone=%s LIMIT 20",
@@ -323,8 +326,8 @@ def list_chats(user=Depends(current_user)):
 @app.get("/v1/chats/{peer}")
 def get_chat(peer: str, user=Depends(current_user)):
     """Fetch the latest 200 messages with a Telefost number or exact @username."""
-    if peer.startswith("@"):
-        lookup = peer[1:].lower()
+    if peer.startswith("@") or not re.fullmatch(r"\+?\d[\d\s()\-]*", peer):
+        lookup = peer.lstrip("@").lower()
         with db_connection() as conn:
             profile = conn.execute("SELECT phone FROM user_profiles WHERE lower(username)=%s", (lookup,)).fetchone()
         if not profile:
@@ -353,9 +356,9 @@ def get_chat(peer: str, user=Depends(current_user)):
 @app.post("/v1/chats/{peer}/messages", status_code=201)
 def send_chat_message(peer: str, body: SendMessage, user=Depends(current_user)):
     """Store a plain-text message between two Telefost accounts."""
-    if peer.startswith("@"):
+    if peer.startswith("@") or not re.fullmatch(r"\+?\d[\d\s()\-]*", peer):
         with db_connection() as conn:
-            profile = conn.execute("SELECT phone FROM user_profiles WHERE lower(username)=%s", (peer[1:].lower(),)).fetchone()
+            profile = conn.execute("SELECT phone FROM user_profiles WHERE lower(username)=%s", (peer.lstrip("@").lower(),)).fetchone()
         if not profile:
             raise HTTPException(status_code=404, detail="Пользователь не найден.")
         peer_phone = profile["phone"]
