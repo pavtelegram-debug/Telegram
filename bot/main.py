@@ -3,6 +3,9 @@ import re
 import sqlite3
 import secrets
 import logging
+import asyncio
+import json
+import urllib.request
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup
 )
@@ -101,6 +104,26 @@ def database():
                             (replacement,))
     con.commit()
     return con
+
+def sync_number_with_api(number, owner):
+    """Publish the bot's assigned demo number to the Telefost PostgreSQL API."""
+    api_url = os.getenv("TELEFOST_API_URL", "https://telefost-api.onrender.com").rstrip("/")
+    api_key = os.getenv("TELEFOST_BOT_API_KEY", "").strip()
+    if not api_key:
+        logging.warning("TELEFOST_BOT_API_KEY is not configured; number sync skipped")
+        return False
+    payload = json.dumps({"number": number, "owner": int(owner)}).encode()
+    req = urllib.request.Request(
+        api_url + "/v1/bot/numbers", data=payload, method="POST",
+        headers={"Content-Type": "application/json", "X-Telefost-Bot-Key": api_key}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8) as response:
+            result = json.loads(response.read().decode())
+        return bool(result.get("ok"))
+    except Exception:
+        logging.exception("Could not sync assigned number with Telefost API")
+        return False
 
 def is_admin(uid):
     return uid in ADMIN_IDS
@@ -219,15 +242,17 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await show(update, "Не удалось закрепить номер. Нажми ещё раз.",
                            main_menu(user.id))
                 return
-        await show(
-            update,
+        synced = await asyncio.to_thread(sync_number_with_api, number, user.id)
+        message = (
             f"📱 ТВОЙ НОМЕР TELEFOST\n\n`{number}`\n\n"
             "Чтобы войти в собственный сервис Telefost, введи этот номер в приложении. "
             "Код подтверждения придёт в этот чат от бота. "
             "Это виртуальный номер Telefost, а не действующий номер мобильной сети "
-            "и не код авторизации Telegram.",
-            main_menu(user.id)
+            "и не код авторизации Telegram."
         )
+        if not synced:
+            message += "\n\n⚠️ Сервер приложения пока не подтвердил синхронизацию номера. Попробуй позже или сообщи администратору."
+        await show(update, message, main_menu(user.id))
     elif action == "repeat_code":
         with database() as con:
             owned = con.execute(
