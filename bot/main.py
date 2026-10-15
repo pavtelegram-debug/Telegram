@@ -216,11 +216,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "SELECT number, code FROM numbers WHERE owner=? LIMIT 1", (user.id,)
             ).fetchone()
         if owned:
+            synced = await asyncio.to_thread(sync_number_with_api, owned["number"], user.id)
             await show(
                 update,
                 f"📱 ТВОЙ ТЕСТОВЫЙ НОМЕР\\n\\n{owned['number']}\\n\\n"
                 f"🧪 Тестовый код: {owned['code']}\\n\\n"
-                "Это данные только для TelefostGram, не реальный номер и не SMS-код Telegram.",
+                "Это данные только для TelefostGram, не реальный номер и не SMS-код Telegram."
+                + ("" if synced else "\\n\\n⚠️ Сервер приложения пока не подтвердил синхронизацию номера."),
                 main_menu(user.id)
             )
             return
