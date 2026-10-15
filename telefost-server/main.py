@@ -61,6 +61,13 @@ def ensure_schema() -> None:
             token_hash VARCHAR(64) PRIMARY KEY, phone VARCHAR(32) NOT NULL,
             expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+        CREATE TABLE IF NOT EXISTS telefost_messages (
+            id BIGSERIAL PRIMARY KEY, sender_phone VARCHAR(32) NOT NULL,
+            recipient_phone VARCHAR(32) NOT NULL, body TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), read_at TIMESTAMPTZ
+        );
+        CREATE INDEX IF NOT EXISTS telefost_messages_pair_idx
+            ON telefost_messages(sender_phone, recipient_phone, id);
         """)
 
 def normalize_phone(phone: str) -> str:
@@ -285,3 +292,85 @@ def echo(payload: dict):
     if len(json.dumps(payload, ensure_ascii=False)) > 4096:
         raise HTTPException(status_code=413, detail="Payload too large")
     return {"ok": True, "received": True}
+
+
+class SendMessage(BaseModel):
+    to: str
+    text: str = Field(min_length=1, max_length=4000)
+
+@app.get("/v1/chats")
+def list_chats(user=Depends(current_user)):
+    """Return recent conversations for the signed-in Telefost account."""
+    ensure_schema()
+    with db_connection() as conn:
+        rows = conn.execute("""
+            WITH conversation_messages AS (
+                SELECT CASE WHEN sender_phone=%s THEN recipient_phone ELSE sender_phone END AS peer,
+                       body, created_at, id,
+                       ROW_NUMBER() OVER (PARTITION BY CASE WHEN sender_phone=%s THEN recipient_phone ELSE sender_phone END
+                                          ORDER BY id DESC) AS rn
+                FROM telefost_messages
+                WHERE sender_phone=%s OR recipient_phone=%s
+            )
+            SELECT c.peer, c.body AS last_message, c.created_at AS last_message_at,
+                   p.username, p.display_name
+            FROM conversation_messages c
+            LEFT JOIN user_profiles p ON p.phone=c.peer
+            WHERE c.rn=1 ORDER BY c.id DESC LIMIT 100
+        """, (user["phone"], user["phone"], user["phone"], user["phone"])).fetchall()
+    return {"ok": True, "chats": [{**dict(row), "last_message_at": row["last_message_at"].isoformat()} for row in rows]}
+
+@app.get("/v1/chats/{peer}")
+def get_chat(peer: str, user=Depends(current_user)):
+    """Fetch the latest 200 messages with a Telefost number or exact @username."""
+    if peer.startswith("@"):
+        lookup = peer[1:].lower()
+        with db_connection() as conn:
+            profile = conn.execute("SELECT phone FROM user_profiles WHERE lower(username)=%s", (lookup,)).fetchone()
+        if not profile:
+            raise HTTPException(status_code=404, detail="Пользователь не найден.")
+        peer_phone = profile["phone"]
+    else:
+        peer_phone = normalize_phone(peer)
+    if peer_phone == user["phone"]:
+        raise HTTPException(status_code=422, detail="Нельзя открыть чат с самим собой.")
+    ensure_schema()
+    with db_connection() as conn:
+        rows = conn.execute("""
+            SELECT id, sender_phone, recipient_phone, body, created_at, read_at
+            FROM telefost_messages
+            WHERE (sender_phone=%s AND recipient_phone=%s) OR (sender_phone=%s AND recipient_phone=%s)
+            ORDER BY id DESC LIMIT 200
+        """, (user["phone"], peer_phone, peer_phone, user["phone"])).fetchall()
+        conn.execute("UPDATE telefost_messages SET read_at=NOW() WHERE sender_phone=%s AND recipient_phone=%s AND read_at IS NULL",
+                     (peer_phone, user["phone"]))
+    messages = [dict(row) for row in reversed(rows)]
+    for message in messages:
+        message["created_at"] = message["created_at"].isoformat()
+        message["read_at"] = message["read_at"].isoformat() if message["read_at"] else None
+    return {"ok": True, "peer": peer_phone, "messages": messages}
+
+@app.post("/v1/chats/{peer}/messages", status_code=201)
+def send_chat_message(peer: str, body: SendMessage, user=Depends(current_user)):
+    """Store a plain-text message between two Telefost accounts."""
+    if peer.startswith("@"):
+        with db_connection() as conn:
+            profile = conn.execute("SELECT phone FROM user_profiles WHERE lower(username)=%s", (peer[1:].lower(),)).fetchone()
+        if not profile:
+            raise HTTPException(status_code=404, detail="Пользователь не найден.")
+        peer_phone = profile["phone"]
+    else:
+        peer_phone = normalize_phone(peer)
+    if peer_phone == user["phone"]:
+        raise HTTPException(status_code=422, detail="Нельзя отправить сообщение самому себе.")
+    ensure_schema()
+    with db_connection() as conn:
+        if not conn.execute("SELECT 1 FROM user_profiles WHERE phone=%s", (peer_phone,)).fetchone():
+            raise HTTPException(status_code=404, detail="Аккаунт Telefost получателя не найден.")
+        row = conn.execute("""
+            INSERT INTO telefost_messages(sender_phone, recipient_phone, body)
+            VALUES(%s,%s,%s) RETURNING id, sender_phone, recipient_phone, body, created_at
+        """, (user["phone"], peer_phone, body.text.strip())).fetchone()
+    result = dict(row)
+    result["created_at"] = result["created_at"].isoformat()
+    return {"ok": True, "message": result}
