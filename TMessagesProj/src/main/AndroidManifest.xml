@@ -116,7 +116,7 @@
         <activity-alias
             android:enabled="true"
             android:name="org.telegram.messenger.DefaultIcon"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:exported="true">
 
             <intent-filter>
@@ -130,7 +130,7 @@
         <activity-alias
             android:enabled="false"
             android:name="org.telegram.messenger.VintageIcon"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:icon="@mipmap/icon_6_launcher"
             android:roundIcon="@mipmap/icon_6_launcher_round"
             android:exported="true">
@@ -146,7 +146,7 @@
         <activity-alias
             android:enabled="false"
             android:name="org.telegram.messenger.AquaIcon"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:icon="@mipmap/icon_4_launcher"
             android:roundIcon="@mipmap/icon_4_launcher_round"
             android:exported="true">
@@ -162,7 +162,7 @@
         <activity-alias
             android:enabled="false"
             android:name="org.telegram.messenger.PremiumIcon"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:icon="@mipmap/icon_3_launcher"
             android:roundIcon="@mipmap/icon_3_launcher_round"
             android:exported="true">
@@ -178,7 +178,7 @@
         <activity-alias
             android:enabled="false"
             android:name="org.telegram.messenger.TurboIcon"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:icon="@mipmap/icon_5_launcher"
             android:roundIcon="@mipmap/icon_5_launcher_round"
             android:exported="true">
@@ -194,7 +194,7 @@
         <activity-alias
             android:enabled="false"
             android:name="org.telegram.messenger.NoxIcon"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:icon="@mipmap/icon_2_launcher"
             android:roundIcon="@mipmap/icon_2_launcher_round"
             android:exported="true">
@@ -206,6 +206,13 @@
             </intent-filter>
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
+
+        <activity
+            android:name="org.telegram.ui.TelefostLoginActivity"
+            android:theme="@style/Theme.TMessages.Start"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode|smallestScreenSize|screenLayout"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true" />
 
         <activity
             android:name="org.telegram.ui.LaunchActivity"
@@ -290,7 +297,7 @@
         </activity>
         <activity-alias
             android:name="org.telegram.ui.CallsActivity"
-            android:targetActivity="org.telegram.ui.LaunchActivity"
+            android:targetActivity="org.telegram.ui.TelefostLoginActivity"
             android:permission="android.permission.CALL_PHONE"
             android:exported="true">
             <intent-filter>
