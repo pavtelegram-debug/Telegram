@@ -107,23 +107,19 @@ def database():
     return con
 
 def sync_number_with_api(number, owner):
-    """Publish the bot's assigned demo number to the Telefost PostgreSQL API."""
-    api_url = os.getenv("TELEFOST_API_URL", "https://telefost-api.onrender.com").rstrip("/")
-    api_key = os.getenv("TELEFOST_BOT_API_KEY", "").strip()
-    if not api_key:
-        logging.warning("TELEFOST_BOT_API_KEY is not configured; number sync skipped")
-        return False
-    payload = json.dumps({"number": number, "owner": int(owner)}).encode()
-    req = urllib.request.Request(
-        api_url + "/v1/bot/numbers", data=payload, method="POST",
-        headers={"Content-Type": "application/json", "X-Telefost-Bot-Key": api_key}
-    )
+    """Confirm assignment in the shared SQLite database used by API and bot."""
+    # backend.main launches this bot with the same TELEFOST_DB_PATH. The number
+    # is already stored in that database, so calling a second, unconfigured
+    # HTTP endpoint would make a valid assignment look broken.
     try:
-        with urllib.request.urlopen(req, timeout=8) as response:
-            result = json.loads(response.read().decode())
-        return bool(result.get("ok"))
+        with database() as con:
+            row = con.execute(
+                "SELECT owner FROM numbers WHERE number=?",
+                (number,)
+            ).fetchone()
+        return bool(row and row["owner"] is not None and int(row["owner"]) == int(owner))
     except Exception:
-        logging.exception("Could not sync assigned number with Telefost API")
+        logger.exception("Could not verify assigned number in shared Telefost database")
         return False
 
 def is_admin(uid):
@@ -131,12 +127,12 @@ def is_admin(uid):
 
 def main_menu(uid):
     rows = [
-        [("📱 Получить один бесплатный номер", "number")],
-        [("🔐 Как получить код входа", "repeat_code")],
-        [("🖼 NFT-юзернейм", "nft_user"),
-         ("💎 NFT-номер", "nft_number")],
-        [("📋 Мои данные", "mydata"),
-         ("❓ Помощь", "help")],
+        [("📱 Получить номер Telefost", "number")],
+        [("🔐 Войти в приложение", "repeat_code")],
+        [("🪪 Заявка на юзернейм", "nft_user"),
+         ("📱 Заявка на номер", "nft_number")],
+        [("👤 Мой аккаунт", "mydata"),
+         ("ℹ️ Помощь", "help")],
     ]
     if is_admin(uid):
         rows.append([("🔐 Админ-панель", "admin")])
@@ -177,7 +173,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     register_user(user)
     await update.message.reply_text(
-        "🔷 TELEFOSTGRAM\n\n"
+        "🔷 TELEFOST\n\n"
         "Твоё пространство виртуальных сервисов.\n"
         "Выбери нужный раздел:",
         reply_markup=main_menu(user.id)
@@ -204,7 +200,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if action == "home":
-        await show(update, "🌑 TELEFOSTGRAM\n\nГлавное меню:",
+        await show(update, "🔷 TELEFOST\n\nГлавное меню:",
                    main_menu(user.id))
     elif action == "help":
         await show(update,
@@ -293,7 +289,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not is_admin(user.id):
             await show(update, "⛔ Нет доступа.")
             return
-        await show(update, "🔐 TELEFOSTGRAM ADMIN\n\nВыбери инструмент:",
+        await show(update, "🔐 TELEFOST — АДМИН-ПАНЕЛЬ\n\nВыбери инструмент:",
                    admin_menu())
     elif action in ("find", "delete", "punish", "labels", "freeze", "credits"):
         if not is_admin(user.id):
@@ -517,7 +513,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ).fetchall()
             numbers_text = ", ".join(x["number"] for x in owned) or "нет"
             await msg.reply_text(
-                f"🔎 ПРОФИЛЬ TELEFOSTGRAM\n\n"
+                f"🔎 ПРОФИЛЬ TELEFOST\n\n"
                 f"🆔 ID: {exists['id']}\n"
                 f"👤 Username: @{exists['username'] or 'не указан'}\n"
                 f"📱 Телефон: {exists['phone'] or 'не предоставлен'}\n"
