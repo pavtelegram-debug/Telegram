@@ -21,8 +21,13 @@ dp = Dispatcher()
 channels = [('TeleFost News', 'http://t.me/TeleFost')]
 
 async def get_numbers() -> dict:
-    async with aiofiles.open('numbers.json', 'r') as file:
-        return json_repair.loads(await file.read())
+    try:
+        async with aiofiles.open('numbers.json', 'r', encoding='utf-8') as file:
+            data = json_repair.loads(await file.read())
+            return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        await write_numbers({})
+        return {}
 
 async def write_numbers(numbers: dict) -> None:
     # топовый способ хранения номеров 2026
@@ -31,7 +36,7 @@ async def write_numbers(numbers: dict) -> None:
     
 async def has_free_number(uid: str | int) -> bool:
     numbers = await get_numbers()
-    for number in numbers[str(uid)]:
+    for number in numbers.get(str(uid), []):
         if number.startswith('79'):
             return True
             
@@ -47,7 +52,7 @@ async def create_user(uid: str | int) -> None:
 
 async def is_number_exists(number: str) -> bool:
     numbers = await get_numbers()
-    return f"{number}'" in str(numbers)
+    return any(number in user_numbers for user_numbers in numbers.values() for number in user_numbers)
     
 async def add_free_number(uid: str | int) -> str:
     numbers = await get_numbers()
