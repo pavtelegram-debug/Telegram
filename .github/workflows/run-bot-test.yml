@@ -1,4 +1,4 @@
-name: Run Telefost Void Bot (temporary test)
+name: Run Voidgram Bot (temporary test)
 
 on:
   workflow_dispatch:
@@ -40,18 +40,18 @@ jobs:
           fi
           echo "Required bot token is configured. Token value will not be printed."
 
-      - name: Start bot for a 10-minute test
+      - name: Start Voidgram bot for a 10-minute test
         shell: bash
         run: |
-          python -m py_compile telefost.py
-          test -f numbers.json || echo "{}" > numbers.json
-          python -u telefost.py &
+          python -m py_compile bot/main.py
+          mkdir -p bot
+          python -u bot/main.py &
           BOT_PID=$!
           cleanup() {
             kill -INT "$BOT_PID" 2>/dev/null || true
             wait "$BOT_PID" 2>/dev/null || true
           }
           trap cleanup EXIT
-          echo "Telefost Void bot process started. It will run for up to 10 minutes for testing."
+          echo "Voidgram bot process started. It will run for up to 10 minutes for testing."
           sleep 600
           echo "10-minute test window finished; stopping the temporary bot process."
