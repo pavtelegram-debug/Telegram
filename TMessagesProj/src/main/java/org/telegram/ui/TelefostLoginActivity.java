@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -41,28 +42,28 @@ public class TelefostLoginActivity extends Activity {
     private void showBase() {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20), dp(24), dp(20), dp(16));
-        root.setBackgroundColor(Color.rgb(13, 24, 42));
+        root.setPadding(0, 0, 0, 0);
+        root.setBackgroundColor(Color.rgb(23, 33, 43));
         setContentView(root);
+
+        LinearLayout appBar = new LinearLayout(this);
+        appBar.setGravity(Gravity.CENTER_VERTICAL);
+        appBar.setPadding(dp(18), 0, dp(18), 0);
+        appBar.setBackgroundColor(Color.rgb(36, 47, 61));
         TextView brand = new TextView(this);
         brand.setText("Telefost");
         brand.setTextColor(Color.WHITE);
-        brand.setTextSize(30);
+        brand.setTextSize(20);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        brand.setGravity(Gravity.CENTER);
-        root.addView(brand, new LinearLayout.LayoutParams(-1, dp(58)));
-        TextView subtitle = new TextView(this);
-        subtitle.setText("Твой отдельный мессенджер");
-        subtitle.setTextColor(Color.rgb(155, 185, 220));
-        subtitle.setTextSize(14);
-        subtitle.setGravity(Gravity.CENTER);
-        root.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(30)));
+        appBar.addView(brand, new LinearLayout.LayoutParams(0, dp(56), 1));
+        root.addView(appBar, new LinearLayout.LayoutParams(-1, dp(56)));
+
         ScrollView scroll = new ScrollView(this);
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, 0, 1);
-        sp.topMargin = dp(12);
-        root.addView(scroll, sp);
+        scroll.setFillViewport(true);
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(16), dp(12), dp(16), dp(20));
         scroll.addView(content);
     }
 
@@ -263,15 +264,16 @@ public class TelefostLoginActivity extends Activity {
 
     private void title(String s) {
         TextView t = new TextView(this);
-        t.setText(s); t.setTextColor(Color.WHITE); t.setTextSize(21);
+        t.setText(s); t.setTextColor(Color.WHITE); t.setTextSize(20);
         t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        t.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(48));
-        p.topMargin = dp(12); content.addView(t, p);
+        p.topMargin = dp(4); p.bottomMargin = dp(6); content.addView(t, p);
     }
 
     private TextView note(String s) {
         TextView t = new TextView(this);
-        t.setText(s); t.setTextColor(Color.rgb(220, 230, 242)); t.setTextSize(15);
+        t.setText(s); t.setTextColor(Color.rgb(222, 230, 237)); t.setTextSize(15);
         t.setPadding(dp(4), dp(10), dp(4), dp(10));
         return t;
     }
@@ -279,9 +281,13 @@ public class TelefostLoginActivity extends Activity {
     private EditText input(String hint, boolean password) {
         EditText e = new EditText(this);
         e.setSingleLine(true); e.setHint(hint); e.setTextColor(Color.WHITE);
-        e.setHintTextColor(Color.rgb(145, 165, 190));
-        e.setPadding(dp(12), 0, dp(12), 0);
-        e.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(70, 130, 210)));
+        e.setHintTextColor(Color.rgb(128, 146, 164));
+        e.setPadding(dp(14), 0, dp(14), 0);
+        GradientDrawable fieldBg = new GradientDrawable();
+        fieldBg.setColor(Color.rgb(36, 47, 61));
+        fieldBg.setCornerRadius(dp(10));
+        e.setBackground(fieldBg);
+        e.setTextSize(16);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(52));
         p.topMargin = dp(8); content.addView(e, p);
         return e;
@@ -290,9 +296,14 @@ public class TelefostLoginActivity extends Activity {
     private Button button(String text) {
         Button b = new Button(this);
         b.setText(text); b.setAllCaps(false); b.setTextColor(Color.WHITE);
-        b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(37, 116, 210)));
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(48));
-        p.topMargin = dp(8);
+        b.setTextSize(15);
+        GradientDrawable buttonBg = new GradientDrawable();
+        buttonBg.setColor(Color.rgb(82, 136, 193));
+        buttonBg.setCornerRadius(dp(10));
+        b.setBackground(buttonBg);
+        b.setPadding(dp(14), 0, dp(14), 0);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(46));
+        p.topMargin = dp(10);
         b.setLayoutParams(p);
         return b;
     }
