@@ -183,8 +183,8 @@ public class TelefostLoginActivity extends Activity {
         StringBuilder b = new StringBuilder("Твои чаты:\n");
         for (int i=0;i<arr.length();i++) {
             JSONObject o = arr.optJSONObject(i);
-            if (o != null) b.append("• ").append(o.optString("username", o.optString("phone", "пользователь")))
-                    .append(" — ").append(o.optString("last_message", "")).append("\n");
+            if (o != null) b.append("• ").append(o.optString("username", o.optString("peer", "пользователь")))
+                    .append(" — ").append(o.optString("last_message", o.optString("body", ""))).append("\n");
         }
         return b.toString();
     }
@@ -207,7 +207,7 @@ public class TelefostLoginActivity extends Activity {
         StringBuilder b = new StringBuilder();
         for (int i=0;i<arr.length();i++) {
             JSONObject o = arr.optJSONObject(i);
-            if (o != null) b.append(o.optString("sender_username", "user")).append(": ")
+            if (o != null) b.append(o.optString("sender_phone", "user")).append(": ")
                     .append(o.optString("text", "")).append("\n\n");
         }
         return b.toString();
@@ -219,7 +219,7 @@ public class TelefostLoginActivity extends Activity {
         for (int i=0;i<arr.length();i++) {
             JSONObject o = arr.optJSONObject(i);
             if (o == null) continue;
-            String peer = o.optString("username", o.optString("phone", ""));
+            String peer = o.optString("username", o.optString("peer", o.optString("phone", "")));
             if (peer.isEmpty()) continue;
             Button b = button("Открыть @" + peer);
             content.addView(b, Math.max(0, content.indexOfChild(results) + 1));
