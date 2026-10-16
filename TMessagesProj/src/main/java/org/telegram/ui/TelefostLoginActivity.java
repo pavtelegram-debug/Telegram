@@ -45,7 +45,7 @@ public class TelefostLoginActivity extends Activity {
         root.setBackgroundColor(Color.rgb(13, 24, 42));
         setContentView(root);
         TextView brand = new TextView(this);
-        brand.setText("FlostGram");
+        brand.setText("Telefost");
         brand.setTextColor(Color.WHITE);
         brand.setTextSize(30);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -68,8 +68,8 @@ public class TelefostLoginActivity extends Activity {
 
     private void showLogin() {
         content.removeAllViews();
-        title("Вход в FlostGram");
-        note("Введи свой номер Telefost, выданный ботом. Код придёт от бота FlostGram, а не из Telegram.");
+        title("Вход в Telefost");
+        note("Введи свой номер Telefost, выданный ботом. Код придёт от бота Telefost, а не из Telegram.");
         phoneInput = input("Номер Telefost, например +79…", false);
         usernameInput = input("Юзернейм (например, user123)", false);
         nameInput = input("Как тебя называть", false);
@@ -85,7 +85,7 @@ public class TelefostLoginActivity extends Activity {
             api.requestCode(phone, new TelefostApi.Callback() {
                 public void onSuccess(JSONObject result) {
                     request.setEnabled(true);
-                    toast(result.optString("message", "Запрос отправлен. Проверь бота FlostGram."));
+                    toast(result.optString("message", "Запрос отправлен. Проверь бота Telefost."));
                 }
                 public void onError(String message) { request.setEnabled(true); toast(message); }
             });
@@ -107,6 +107,26 @@ public class TelefostLoginActivity extends Activity {
         content.removeAllViews();
         currentPeer = "";
         title("Чаты Telefost");
+        Button profile = button("Мой профиль и ID");
+        content.addView(profile);
+        profile.setOnClickListener(v -> api.getMe(new TelefostApi.Callback() {
+            public void onSuccess(JSONObject data) {
+                JSONObject user = data.optJSONObject("user");
+                if (user == null) { toast("Сервер не вернул профиль."); return; }
+                content.removeAllViews();
+                title("Мой профиль");
+                content.addView(note("ID Telefost: " + user.optString("id", "—")));
+                content.addView(note("Имя: " + user.optString("display_name", "—")));
+                content.addView(note("Юзернейм: @" + user.optString("username", "не задан")));
+                content.addView(note("Номер: " + user.optString("phone", "—")));
+                content.addView(note("Stars: " + user.optString("stars", "0")));
+                content.addView(note("Premium: " + (user.optBoolean("premium") ? "Да" : "Нет")));
+                Button backToChats = button("Назад к чатам");
+                content.addView(backToChats);
+                backToChats.setOnClickListener(x -> showHome());
+            }
+            public void onError(String message) { toast(message); }
+        }));
         Button refresh = button("Обновить чаты");
         content.addView(refresh);
         searchInput = input("Найти по @юзернейму или номеру Telefost", false);
