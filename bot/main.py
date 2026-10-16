@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("BOT_TOKEN", "").strip()
 ADMIN_IDS = {
     int(x.strip())
-    for x in os.getenv("ADMIN_IDS", "8868524848").split(",")
+    for x in os.getenv("ADMIN_IDS", "").split(",")
     if x.strip().isdigit()
 }
 DB = os.getenv("TELEFOST_DB_PATH", "bot/data.sqlite3")
