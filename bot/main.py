@@ -15,6 +15,7 @@ from telegram.ext import (
 )
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 TOKEN = os.getenv("BOT_TOKEN", "").strip()
 ADMIN_IDS = {
     int(x.strip())
