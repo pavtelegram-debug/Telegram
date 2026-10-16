@@ -16,7 +16,6 @@ jobs:
       TELEFOST_API_URL: ${{ secrets.TELEFOST_API_URL }}
       TELEFOST_BOT_API_KEY: ${{ secrets.TELEFOST_BOT_API_KEY }}
       PYTHONUNBUFFERED: "1"
-      PYTHONUNBUFFERED: "1"
     steps:
       - name: Get source
         uses: actions/checkout@v4
