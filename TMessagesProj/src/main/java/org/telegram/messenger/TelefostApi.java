@@ -150,7 +150,7 @@ public final class TelefostApi {
     public void sendMessage(String usernameOrPhone, String text, Callback callback) {
         JSONObject body = new JSONObject();
         try {
-            body.put("text", text == null ? "" : text);
+            body.put("to", usernameOrPhone == null ? "" : usernameOrPhone);\n            body.put("text", text == null ? "" : text);
             String peer = java.net.URLEncoder.encode(usernameOrPhone, "UTF-8").replace("+", "%20");
             execute("POST", "/v1/chats/" + peer + "/messages", body, true, callback);
         } catch (Exception e) {
