@@ -1,4 +1,4 @@
-name: Run Telefost Bot (temporary test)
+name: Run Telefost Void Bot (temporary test)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
       ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
       TELEFOST_API_URL: ${{ secrets.TELEFOST_API_URL }}
       TELEFOST_BOT_API_KEY: ${{ secrets.TELEFOST_BOT_API_KEY }}
-      TELEFOST_DB_PATH: bot/data.sqlite3
+      PYTHONUNBUFFERED: "1"
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Get source
@@ -26,8 +26,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install bot dependency
-        run: python -m pip install "python-telegram-bot==22.5"
+      - name: Install bot dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Check required configuration
         shell: bash
@@ -44,14 +44,15 @@ jobs:
       - name: Start bot for a 10-minute test
         shell: bash
         run: |
-          python -m py_compile bot/main.py
-          python -u bot/main.py &
+          python -m py_compile telefost.py
+          test -f numbers.json || echo "{}" > numbers.json
+          python -u telefost.py &
           BOT_PID=$!
           cleanup() {
             kill -INT "$BOT_PID" 2>/dev/null || true
             wait "$BOT_PID" 2>/dev/null || true
           }
           trap cleanup EXIT
-          echo "Bot process started. It will run for up to 10 minutes for testing."
+          echo "Telefost Void bot process started. It will run for up to 10 minutes for testing."
           sleep 600
           echo "10-minute test window finished; stopping the temporary bot process."
