@@ -69,15 +69,26 @@ public class TelefostLoginActivity extends Activity {
 
     private void showLogin() {
         content.removeAllViews();
-        title("Вход в Telefost");
-        note("Введи свой номер Telefost, выданный ботом. Код придёт от бота Telefost, а не из Telegram.");
-        phoneInput = input("Номер Telefost, например +79…", false);
-        usernameInput = input("Юзернейм (например, user123)", false);
-        nameInput = input("Как тебя называть", false);
-        Button request = button("Получить код");
+        content.setPadding(dp(22), dp(24), dp(22), dp(20));
+        TextView logo = new TextView(this);
+        logo.setText("Telefost");
+        logo.setTextColor(Color.WHITE);
+        logo.setTextSize(30);
+        logo.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        logo.setGravity(Gravity.CENTER);
+        content.addView(logo, new LinearLayout.LayoutParams(-1, dp(58)));
+        TextView sub = note("Мессенджер для общения");
+        sub.setGravity(Gravity.CENTER);
+        content.addView(sub, new LinearLayout.LayoutParams(-1, dp(38)));
+        title("Вход");
+        note("Используй номер Telefost, который выдал бот. Это отдельный аккаунт Telefost.");
+        phoneInput = input("Номер Telefost · +79…", false);
+        usernameInput = input("Username · например user123", false);
+        nameInput = input("Имя", false);
+        Button request = button("Получить код в боте");
         content.addView(request);
-        codeInput = input("Код из бота", false);
-        Button verify = button("Войти / создать аккаунт");
+        codeInput = input("Код подтверждения Telefost", false);
+        Button verify = button("Продолжить");
         content.addView(verify);
         request.setOnClickListener(v -> {
             String phone = phoneInput.getText().toString().trim();
@@ -86,7 +97,7 @@ public class TelefostLoginActivity extends Activity {
             api.requestCode(phone, new TelefostApi.Callback() {
                 public void onSuccess(JSONObject result) {
                     request.setEnabled(true);
-                    toast(result.optString("message", "Запрос отправлен. Проверь бота Telefost."));
+                    toast(result.optString("message", "Проверь личный чат с ботом Telefost."));
                 }
                 public void onError(String message) { request.setEnabled(true); toast(message); }
             });
@@ -106,57 +117,151 @@ public class TelefostLoginActivity extends Activity {
 
     private void showHome() {
         content.removeAllViews();
+        content.setPadding(dp(0), dp(0), dp(0), dp(16));
         currentPeer = "";
-        title("Чаты Telefost");
-        Button profile = button("Мой профиль и ID");
-        content.addView(profile);
-        profile.setOnClickListener(v -> api.getMe(new TelefostApi.Callback() {
-            public void onSuccess(JSONObject data) {
-                JSONObject user = data.optJSONObject("user");
-                if (user == null) { toast("Сервер не вернул профиль."); return; }
-                content.removeAllViews();
-                title("Мой профиль");
-                content.addView(note("ID Telefost: " + user.optString("id", "—")));
-                content.addView(note("Имя: " + user.optString("display_name", "—")));
-                content.addView(note("Юзернейм: @" + user.optString("username", "не задан")));
-                content.addView(note("Номер: " + user.optString("phone", "—")));
-                content.addView(note("Stars: " + user.optString("stars", "0")));
-                content.addView(note("Premium: " + (user.optBoolean("premium") ? "Да" : "Нет")));
-                Button backToChats = button("Назад к чатам");
-                content.addView(backToChats);
-                backToChats.setOnClickListener(x -> showHome());
-            }
-            public void onError(String message) { toast(message); }
-        }));
-        Button refresh = button("Обновить чаты");
+
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setPadding(dp(16), 0, dp(12), 0);
+        top.setBackgroundColor(Color.rgb(36, 47, 61));
+        TextView brand = new TextView(this);
+        brand.setText("Telefost");
+        brand.setTextColor(Color.WHITE);
+        brand.setTextSize(21);
+        brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        top.addView(brand, new LinearLayout.LayoutParams(0, dp(56), 1));
+        Button profile = button("Профиль");
+        LinearLayout.LayoutParams profileParams = new LinearLayout.LayoutParams(dp(104), dp(40));
+        profile.setLayoutParams(profileParams);
+        top.addView(profile);
+        content.addView(top, new LinearLayout.LayoutParams(-1, dp(56)));
+        profile.setOnClickListener(v -> showProfile());
+
+        LinearLayout searchRow = new LinearLayout(this);
+        searchRow.setGravity(Gravity.CENTER_VERTICAL);
+        searchInput = new EditText(this);
+        searchInput.setSingleLine(true);
+        searchInput.setTextColor(Color.WHITE);
+        searchInput.setHintTextColor(Color.rgb(128, 146, 164));
+        searchInput.setHint("Поиск по username или номеру");
+        searchInput.setTextSize(15);
+        searchInput.setPadding(dp(14), 0, dp(14), 0);
+        GradientDrawable searchBg = new GradientDrawable();
+        searchBg.setColor(Color.rgb(36, 47, 61));
+        searchBg.setCornerRadius(dp(22));
+        searchInput.setBackground(searchBg);
+        searchRow.addView(searchInput, new LinearLayout.LayoutParams(0, dp(44), 1));
+        Button search = button("Найти");
+        LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(dp(84), dp(44));
+        searchParams.leftMargin = dp(8);
+        search.setLayoutParams(searchParams);
+        searchRow.addView(search);
+        LinearLayout.LayoutParams srp = new LinearLayout.LayoutParams(-1, dp(44));
+        srp.setMargins(dp(12), dp(12), dp(12), dp(8));
+        content.addView(searchRow, srp);
+
+        title("Сообщения");
+        TextView results = note("Загружаю чаты…");
+        results.setPadding(dp(16), dp(18), dp(16), dp(18));
+        content.addView(results, new LinearLayout.LayoutParams(-1, -2));
+        Button refresh = button("Обновить список");
+        LinearLayout.LayoutParams rp = (LinearLayout.LayoutParams) refresh.getLayoutParams();
+        rp.setMargins(dp(12), dp(4), dp(12), dp(8));
+        refresh.setLayoutParams(rp);
         content.addView(refresh);
-        searchInput = input("Найти по @юзернейму или номеру Telefost", false);
-        Button search = button("Найти пользователя");
-        content.addView(search);
-        TextView results = note("Чаты и найденные пользователи появятся здесь.");
-        content.addView(results);
-        refresh.setOnClickListener(v -> api.getChats(new TelefostApi.Callback() {
-            public void onSuccess(JSONObject data) {
-                results.setText(formatChats(data));
-                attachChatButtons(data, results);
-            }
-            public void onError(String message) { toast(message); }
-        }));
-        search.setOnClickListener(v -> {
-            String q = searchInput.getText().toString().trim();
-            if (q.isEmpty()) { toast("Введи @юзернейм или номер"); return; }
-            api.searchUsers(q, new TelefostApi.Callback() {
+
+        refresh.setOnClickListener(v -> {
+            results.setText("Загружаю чаты…");
+            removeRowsAfter(results);
+            api.getChats(new TelefostApi.Callback() {
                 public void onSuccess(JSONObject data) {
-                    results.setText(formatUsers(data));
-                    attachUserButtons(data, results);
+                    JSONArray arr = data.optJSONArray("chats");
+                    if (arr == null || arr.length() == 0) {
+                        results.setText("Пока нет сообщений. Найди человека по username или номеру выше, чтобы начать диалог.");
+                        return;
+                    }
+                    results.setText("");
+                    attachChatButtons(data, results);
                 }
-                public void onError(String message) { toast(message); }
+                public void onError(String message) { results.setText("Не удалось загрузить чаты: " + message); }
             });
         });
-        Button logout = button("Выйти из Telefost");
+        search.setOnClickListener(v -> {
+            String q = searchInput.getText().toString().trim();
+            if (q.isEmpty()) { toast("Введи username или номер"); return; }
+            removeRowsAfter(results);
+            results.setText("Ищу пользователя…");
+            api.searchUsers(q, new TelefostApi.Callback() {
+                public void onSuccess(JSONObject data) {
+                    JSONArray arr = data.optJSONArray("users");
+                    if (arr == null || arr.length() == 0) {
+                        results.setText("Пользователь не найден. Проверь username или номер Telefost.");
+                        return;
+                    }
+                    results.setText("Результаты поиска");
+                    attachUserButtons(data, results);
+                }
+                public void onError(String message) { results.setText(message); }
+            });
+        });
+        Button logout = button("Выйти из аккаунта");
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) logout.getLayoutParams();
+        lp.setMargins(dp(12), dp(16), dp(12), 0);
+        logout.setLayoutParams(lp);
         content.addView(logout);
         logout.setOnClickListener(v -> { api.signOut(); showLogin(); });
         refresh.performClick();
+    }
+
+    private void showProfile() {
+        api.getMe(new TelefostApi.Callback() {
+            public void onSuccess(JSONObject data) {
+                JSONObject user = data.optJSONObject("user");
+                if (user == null) { toast("Сервер не вернул профиль"); return; }
+                content.removeAllViews();
+                content.setPadding(dp(16), dp(12), dp(16), dp(20));
+                title("Мой профиль");
+                TextView avatar = new TextView(TelefostLoginActivity.this);
+                String name = user.optString("display_name", "T");
+                avatar.setText(name.isEmpty() ? "T" : name.substring(0, 1).toUpperCase());
+                avatar.setTextColor(Color.WHITE);
+                avatar.setTextSize(30);
+                avatar.setGravity(Gravity.CENTER);
+                GradientDrawable circle = new GradientDrawable();
+                circle.setColor(Color.rgb(82, 136, 193));
+                circle.setShape(GradientDrawable.OVAL);
+                avatar.setBackground(circle);
+                LinearLayout.LayoutParams avp = new LinearLayout.LayoutParams(dp(76), dp(76));
+                avp.gravity = Gravity.CENTER_HORIZONTAL;
+                avp.topMargin = dp(12);
+                content.addView(avatar, avp);
+                TextView display = note(name);
+                display.setTextSize(21);
+                display.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                display.setGravity(Gravity.CENTER);
+                content.addView(display);
+                content.addView(note("ID Telefost: " + user.optString("id", "—")));
+                content.addView(note("Username: @" + user.optString("username", "не задан")));
+                content.addView(note("Номер: " + user.optString("phone", "—")));
+                content.addView(note("Stars: " + user.optString("stars", "0")));
+                content.addView(note("Premium: " + (user.optBoolean("premium") ? "Да" : "Нет")));
+                Button back = button("Назад к сообщениям");
+                content.addView(back);
+                back.setOnClickListener(v -> showHome());
+            }
+            public void onError(String message) { toast(message); }
+        });
+    }
+
+    private void removeRowsAfter(View anchor) {
+        int index = content.indexOfChild(anchor);
+        if (index >= 0) {
+            while (content.getChildCount() > index + 1) {
+                View child = content.getChildAt(index + 1);
+                if (child instanceof Button && ((Button) child).getText().toString().equals("Обновить список")) break;
+                content.removeViewAt(index + 1);
+            }
+        }
     }
 
     private void openChat(String peer) {
@@ -237,28 +342,73 @@ public class TelefostLoginActivity extends Activity {
     private void attachChatButtons(JSONObject data, TextView results) {
         JSONArray arr = data.optJSONArray("chats");
         if (arr == null) return;
+        int index = content.indexOfChild(results) + 1;
         for (int i=0;i<arr.length();i++) {
             JSONObject o = arr.optJSONObject(i);
             if (o == null) continue;
             String peer = o.optString("username", o.optString("peer", o.optString("phone", "")));
             if (peer.isEmpty()) continue;
-            Button b = button("Открыть @" + peer);
-            content.addView(b, Math.max(0, content.indexOfChild(results) + 1));
-            b.setOnClickListener(v -> openChat(peer));
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(14), dp(8), dp(14), dp(8));
+            TextView avatar = new TextView(this);
+            String letter = peer.replace("@", "");
+            avatar.setText(letter.isEmpty() ? "?" : letter.substring(0, 1).toUpperCase());
+            avatar.setTextColor(Color.WHITE); avatar.setTextSize(20); avatar.setGravity(Gravity.CENTER);
+            GradientDrawable circle = new GradientDrawable();
+            circle.setColor(Color.rgb(82, 136, 193)); circle.setShape(GradientDrawable.OVAL);
+            avatar.setBackground(circle);
+            row.addView(avatar, new LinearLayout.LayoutParams(dp(48), dp(48)));
+            LinearLayout info = new LinearLayout(this);
+            info.setOrientation(LinearLayout.VERTICAL);
+            info.setPadding(dp(12), 0, 0, 0);
+            TextView name = new TextView(this); name.setText("@" + peer);
+            name.setTextColor(Color.WHITE); name.setTextSize(16); name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            TextView preview = new TextView(this);
+            preview.setText(o.optString("last_message", o.optString("body", "Нажми, чтобы открыть чат")));
+            preview.setTextColor(Color.rgb(160, 177, 194)); preview.setTextSize(13);
+            info.addView(name); info.addView(preview);
+            row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+            row.setBackgroundColor(Color.rgb(23, 33, 43));
+            row.setOnClickListener(v -> openChat(peer));
+            content.addView(row, index++);
+            View divider = new View(this); divider.setBackgroundColor(Color.rgb(48, 62, 76));
+            content.addView(divider, index++, new LinearLayout.LayoutParams(-1, dp(1)));
         }
     }
 
     private void attachUserButtons(JSONObject data, TextView results) {
         JSONArray arr = data.optJSONArray("users");
         if (arr == null) return;
+        int index = content.indexOfChild(results) + 1;
         for (int i=0;i<arr.length();i++) {
             JSONObject o = arr.optJSONObject(i);
             if (o == null) continue;
             String peer = o.optString("username", o.optString("phone", ""));
             if (peer.isEmpty()) continue;
-            Button b = button("Написать @" + peer);
-            content.addView(b, Math.max(0, content.indexOfChild(results) + 1));
-            b.setOnClickListener(v -> openChat(peer));
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(14), dp(8), dp(14), dp(8));
+            TextView avatar = new TextView(this);
+            String letter = peer.replace("@", "");
+            avatar.setText(letter.isEmpty() ? "?" : letter.substring(0, 1).toUpperCase());
+            avatar.setTextColor(Color.WHITE); avatar.setTextSize(20); avatar.setGravity(Gravity.CENTER);
+            GradientDrawable circle = new GradientDrawable();
+            circle.setColor(Color.rgb(82, 136, 193)); circle.setShape(GradientDrawable.OVAL);
+            avatar.setBackground(circle);
+            row.addView(avatar, new LinearLayout.LayoutParams(dp(48), dp(48)));
+            TextView name = new TextView(this);
+            name.setText("@" + peer + "\\n" + o.optString("phone", "Пользователь Telefost"));
+            name.setTextColor(Color.WHITE); name.setTextSize(16);
+            name.setPadding(dp(12), 0, 0, 0);
+            row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView action = new TextView(this); action.setText("›");
+            action.setTextColor(Color.rgb(82, 136, 193)); action.setTextSize(28);
+            row.addView(action);
+            row.setOnClickListener(v -> openChat(peer));
+            content.addView(row, index++);
+            View divider = new View(this); divider.setBackgroundColor(Color.rgb(48, 62, 76));
+            content.addView(divider, index++, new LinearLayout.LayoutParams(-1, dp(1)));
         }
     }
 
