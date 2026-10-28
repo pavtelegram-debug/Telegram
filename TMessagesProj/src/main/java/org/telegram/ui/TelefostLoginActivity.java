@@ -137,29 +137,6 @@ public class TelefostLoginActivity extends Activity {
         content.addView(top, new LinearLayout.LayoutParams(-1, dp(56)));
         profile.setOnClickListener(v -> showProfile());
 
-        LinearLayout searchRow = new LinearLayout(this);
-        searchRow.setGravity(Gravity.CENTER_VERTICAL);
-        searchInput = new EditText(this);
-        searchInput.setSingleLine(true);
-        searchInput.setTextColor(Color.WHITE);
-        searchInput.setHintTextColor(Color.rgb(128, 146, 164));
-        searchInput.setHint("Поиск по username или номеру");
-        searchInput.setTextSize(15);
-        searchInput.setPadding(dp(14), 0, dp(14), 0);
-        GradientDrawable searchBg = new GradientDrawable();
-        searchBg.setColor(Color.rgb(36, 47, 61));
-        searchBg.setCornerRadius(dp(22));
-        searchInput.setBackground(searchBg);
-        searchRow.addView(searchInput, new LinearLayout.LayoutParams(0, dp(44), 1));
-        Button search = button("Найти");
-        LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(dp(84), dp(44));
-        searchParams.leftMargin = dp(8);
-        search.setLayoutParams(searchParams);
-        searchRow.addView(search);
-        LinearLayout.LayoutParams srp = new LinearLayout.LayoutParams(-1, dp(44));
-        srp.setMargins(dp(12), dp(12), dp(12), dp(8));
-        content.addView(searchRow, srp);
-
         title("Сообщения");
         TextView results = note("Загружаю чаты…");
         results.setPadding(dp(16), dp(18), dp(16), dp(18));
@@ -177,31 +154,13 @@ public class TelefostLoginActivity extends Activity {
                 public void onSuccess(JSONObject data) {
                     JSONArray arr = data.optJSONArray("chats");
                     if (arr == null || arr.length() == 0) {
-                        results.setText("Пока нет сообщений. Найди человека по username или номеру выше, чтобы начать диалог.");
+                        results.setText("Пока нет сообщений. Новые диалоги появятся здесь.");
                         return;
                     }
                     results.setText("");
                     attachChatButtons(data, results);
                 }
                 public void onError(String message) { results.setText("Не удалось загрузить чаты: " + message); }
-            });
-        });
-        search.setOnClickListener(v -> {
-            String q = searchInput.getText().toString().trim();
-            if (q.isEmpty()) { toast("Введи username или номер"); return; }
-            removeRowsAfter(results);
-            results.setText("Ищу пользователя…");
-            api.searchUsers(q, new TelefostApi.Callback() {
-                public void onSuccess(JSONObject data) {
-                    JSONArray arr = data.optJSONArray("users");
-                    if (arr == null || arr.length() == 0) {
-                        results.setText("Пользователь не найден. Проверь username или номер Telefost.");
-                        return;
-                    }
-                    results.setText("Результаты поиска");
-                    attachUserButtons(data, results);
-                }
-                public void onError(String message) { results.setText(message); }
             });
         });
         Button logout = button("Выйти из аккаунта");
