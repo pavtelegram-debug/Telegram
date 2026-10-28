@@ -1,4 +1,4 @@
-name: Build TelefostGram APK
+name: Build Telefost APK
 
 on:
   workflow_dispatch:
@@ -60,7 +60,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TelefostGram-APK
+          name: Telefost-APK
           path: TMessagesProj_AppStandalone/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 90
